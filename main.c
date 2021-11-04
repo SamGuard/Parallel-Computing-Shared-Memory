@@ -13,6 +13,11 @@ typedef struct grid {
     unsigned int width, height;
 } Grid;
 
+typedef struct ThreadArguements {
+    unsigned int start, end;
+    Grid *g0, *g1;
+} ThreadArguements;
+
 void generateGrid(Grid* g, int init) {
     unsigned int width = g->width;
     unsigned int height = g->height;
@@ -69,6 +74,19 @@ void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
     }
 }
 
+void threadFunc(ThreadArguements* args) {
+    // Store all information
+
+    // Do iteration
+
+    // Wait for other threads
+    //Swap grid pointers
+    temp = grid1;
+    grid1 = grid0;
+    grid0 = temp;
+    // Exit on condition
+}
+
 void sim(double endDiff, Grid* g) {
     // Setup
     Grid* grid0 = g;
@@ -84,15 +102,23 @@ void sim(double endDiff, Grid* g) {
     generateGrid(grid1, FALSE);
     double totalDiff;
     totalDiff = endDiff + 1;
+    int gap = width * height / WORKERS;
+    ThreadArguements th;
     //---------------------
     while (totalDiff > endDiff) {
         totalDiff = 0;
-				
-				simThread(0, width*height, grid0, grid1, &totalDiff);
 
-        temp = grid1;
-        grid1 = grid0;
-        grid0 = temp;
+        for (int i = 0; i < WORKERS; i++) {
+            th.start = i * gap;
+            th.end = (i + 1) * gap;
+            th.g0 = grid0;
+            th.g1 = grid1;
+            if (i != WORKERS - 1) {
+                th.end = (i + 1) * gap;
+            } else {
+                th.end = width * height;
+            }
+        }
         printf("%f\n", totalDiff);
 
         for (int x = 0; x < width; x++) {
@@ -110,7 +136,7 @@ int main() {
     g.width = 8u;
     g.height = 8u;
     generateGrid(&g, TRUE);
-		sim(0.0000001, &g);
+    sim(0.0000001, &g);
 
     return 0;
 }
