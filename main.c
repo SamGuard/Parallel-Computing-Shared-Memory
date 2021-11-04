@@ -6,9 +6,11 @@
 
 #define TRUE 1
 #define FALSE 0
-#define WORKERS 16
+#define WORKERS 32
+#define GRID_WIDTH 5096
+#define GRID_HEIGHT 5096
 
-#define VERBOSE
+//#define VERBOSE
 #define FILE_OUT
 
 int STOP = 0;
@@ -82,7 +84,7 @@ void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
     }
 }
 
-void *threadFunc(ThreadArguements* args) {
+void* threadFunc(ThreadArguements* args) {
     // Store all information
     Grid* temp;
     Grid* grid0 = args->g0;
@@ -124,7 +126,6 @@ void sim(double endDiff, Grid* g) {
     int height = grid1->height = g->height;
     generateGrid(grid1, FALSE);  // Create grid filled with 0's
     double totalDiff;
-    
 
     // Create threads
     int gap = (width * height) / WORKERS;
@@ -150,11 +151,11 @@ void sim(double endDiff, Grid* g) {
     totalDiff = 0;
     pthread_barrier_wait(&startOfIterationBarrier);
     while (1) {
-        //Wait for all threads to finish here
+        // Wait for all threads to finish here
         pthread_barrier_wait(&endOfIterationBarrier);
-        //Print out results of iterations
+        // Print out results of iterations
 
-        #ifdef VERBOSE
+#ifdef VERBOSE
         printf("%f\n", totalDiff);
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
@@ -162,22 +163,27 @@ void sim(double endDiff, Grid* g) {
             }
             printf("\n");
         }
-        #endif
-        //Reset any vars for next iteration
-        if(totalDiff < endDiff) break;
+#endif
+        // Reset any vars for next iteration
+        if (totalDiff < endDiff) break;
         totalDiff = 0;
-        //Set the threads off again
+        // Set the threads off again
         pthread_barrier_wait(&startOfIterationBarrier);
     }
 
-
+    for (int x = 0; x < width; x++) {
+        for (int y = 0; y < height; y++) {
+            printf("%f ", grid0->val[x][y]);
+        }
+        printf("\n");
+    }
 }
 
 int main() {
     srand(time(NULL));
     Grid g;
-    g.width = 5096;
-    g.height = 5096;
+    g.width = (unsigned int)GRID_WIDTH;
+    g.height = (unsigned int)GRID_HEIGHT;
     generateGrid(&g, TRUE);
     sim(0.0000001, &g);
 
