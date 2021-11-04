@@ -124,10 +124,10 @@ void sim(double endDiff, Grid* g) {
     int height = grid1->height = g->height;
     generateGrid(grid1, FALSE);  // Create grid filled with 0's
     double totalDiff;
-    totalDiff = endDiff + 1;
+    
 
     // Create threads
-    int gap = width * height / WORKERS;
+    int gap = (width * height) / WORKERS;
     ThreadArguements th[WORKERS];
     pthread_t threads[WORKERS];
     pthread_barrier_init(&startOfIterationBarrier, NULL, WORKERS + 1);
@@ -149,7 +149,7 @@ void sim(double endDiff, Grid* g) {
     }
     totalDiff = 0;
     pthread_barrier_wait(&startOfIterationBarrier);
-    while (totalDiff > endDiff) {
+    while (1) {
         //Wait for all threads to finish here
         pthread_barrier_wait(&endOfIterationBarrier);
         //Print out results of iterations
@@ -164,6 +164,7 @@ void sim(double endDiff, Grid* g) {
         }
         #endif
         //Reset any vars for next iteration
+        if(totalDiff < endDiff) break;
         totalDiff = 0;
         //Set the threads off again
         pthread_barrier_wait(&startOfIterationBarrier);
@@ -175,8 +176,8 @@ void sim(double endDiff, Grid* g) {
 int main() {
     srand(time(NULL));
     Grid g;
-    g.width = 16u;
-    g.height = 16u;
+    g.width = 5096;
+    g.height = 5096;
     generateGrid(&g, TRUE);
     sim(0.0000001, &g);
 
