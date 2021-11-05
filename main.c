@@ -1,14 +1,15 @@
 #include <math.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
 #define TRUE 1
 #define FALSE 0
-#define WORKERS 32
-#define GRID_WIDTH 5096
-#define GRID_HEIGHT 5096
+#define WORKERS 42
+#define GRID_WIDTH 512
+#define GRID_HEIGHT 512
 
 //#define VERBOSE
 #define FILE_OUT
@@ -16,6 +17,7 @@
 int STOP = 0;
 pthread_barrier_t startOfIterationBarrier, endOfIterationBarrier;
 pthread_mutex_t totalDiffMutex;
+
 
 typedef struct grid {
     float** val;
@@ -112,6 +114,7 @@ void* threadFunc(ThreadArguements* args) {
 }
 
 void sim(double endDiff, Grid* g) {
+    time_t startTime = time(NULL);
     // Setup
     Grid* grid0 = g;
     Grid* grid1 = (Grid*)malloc(sizeof(Grid));
@@ -121,7 +124,7 @@ void sim(double endDiff, Grid* g) {
         return;
     }
     Grid* temp;
-
+    unsigned int iterations = 0;
     int width = grid1->width = g->width;
     int height = grid1->height = g->height;
     generateGrid(grid1, FALSE);  // Create grid filled with 0's
@@ -145,7 +148,7 @@ void sim(double endDiff, Grid* g) {
         } else {
             th[i].end = width * height;
         }
-
+        
         pthread_create(&threads[i], NULL, threadFunc, &th[i]);
     }
     totalDiff = 0;
@@ -165,18 +168,25 @@ void sim(double endDiff, Grid* g) {
         }
 #endif
         // Reset any vars for next iteration
+        iterations++;
         if (totalDiff < endDiff) break;
         totalDiff = 0;
         // Set the threads off again
         pthread_barrier_wait(&startOfIterationBarrier);
     }
-
+    printf("Iterations: %d\n");
+    printf("Time: %ds\n", time(NULL)-startTime);
+    printf("Workers %d\n", WORKERS);
+    printf("\n");
     for (int x = 0; x < width; x++) {
         for (int y = 0; y < height; y++) {
             printf("%f ", grid0->val[x][y]);
         }
         printf("\n");
     }
+    pthread_barrier_destroy(&startOfIterationBarrier);
+    pthread_barrier_destroy(&endOfIterationBarrier);
+    pthread_mutex_destroy(&totalDiffMutex);
 }
 
 int main() {
