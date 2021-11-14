@@ -7,7 +7,7 @@ def performance():
     os.system("echo workers,width,height,precision,iterations,time")
 
     for workers in [1, 2, 4, 8, 16, 32, 44]:
-        for scale in [16, 32, 64, 128, 256, 512]:
+        for scale in [16, 64, 256, 512, 1024]:
             width = height = scale
             precision = 0.000001
             command = "./main {} {} {} {}".format(
