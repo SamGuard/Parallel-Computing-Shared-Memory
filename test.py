@@ -4,15 +4,15 @@ import subprocess
 
 
 def performance():
-    print("workers,width,height,iterations,time")
+    os.system("echo workers,width,height,precision,iterations,time")
 
     for workers in [1, 2, 4, 8, 16, 32, 44]:
         for scale in [16, 32, 64, 128, 256, 512]:
             width = height = scale
-            for precision in [1, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001]:
-                command = "./main {} {} {} {}".format(
-                    workers, width, height, precision)
-                subprocess.run(command, shell=True)
+            precision = 0.000001
+            command = "./main {} {} {} {}".format(
+                workers, width, height, precision)
+            subprocess.run(command, shell=True)
 
 
 def main(mode):

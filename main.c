@@ -191,7 +191,7 @@ void sim(double endDiff, unsigned int WORKERS, Grid* g) {
         printf("\n");
     }
 #else
-    printf("\n%d,%u,%u,%f,%d,%d", WORKERS, width, height, endDiff, iterations,
+    printf("%d,%u,%u,%f,%d,%d\n", WORKERS, width, height, endDiff, iterations,
            (int)(time(NULL) - startTime));
 #endif
     pthread_barrier_destroy(&startOfIterationBarrier);
