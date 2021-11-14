@@ -7,17 +7,12 @@
 
 #define TRUE 1
 #define FALSE 0
-#define WORKERS 42
-#define GRID_WIDTH 512
-#define GRID_HEIGHT 512
-
 //#define VERBOSE
 #define FILE_OUT
 
-int STOP = 0;
+int STOP = FALSE;
 pthread_barrier_t startOfIterationBarrier, endOfIterationBarrier;
 pthread_mutex_t totalDiffMutex;
-
 
 typedef struct grid {
     float** val;
@@ -27,7 +22,7 @@ typedef struct grid {
 typedef struct ThreadArguements {
     unsigned int start, end;
     Grid *g0, *g1;
-    double* totalDiff;
+    double* maxDiff;
 } ThreadArguements;
 
 void generateGrid(Grid* g, int init) {
@@ -65,11 +60,13 @@ void generateGrid(Grid* g, int init) {
 }
 
 void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
-               double* diff) {
+               double* maxDiff) {
     unsigned int i, x, y;
     float newVal;
+    double diff;
     int width = grid0->width;
     int height = grid0->height;
+    *maxDiff = 0;
     for (i = start; i < end; i++) {
         x = i % width;
         y = i / width;
@@ -80,7 +77,9 @@ void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
                       grid0->val[x + 1][y - 1] + grid0->val[x - 1][y + 1] +
                       grid0->val[x + 1][y + 1]) /
                      5;
-            *diff += fabs((double)newVal - (double)grid0->val[x][y]);
+
+            diff = fabs((double)newVal - (double)grid0->val[x][y]);
+            *maxDiff = (*maxDiff < diff) ? diff : *maxDiff;
             grid1->val[x][y] = newVal;
         }
     }
@@ -92,12 +91,12 @@ void* threadFunc(ThreadArguements* args) {
     Grid* grid0 = args->g0;
     Grid* grid1 = args->g1;
     int start = args->start, end = args->end;
-    double* totalDiff = args->totalDiff;
+    double* maxDiff = args->maxDiff;
     double diff;
     // Do iteration
-    while (STOP == 0) {
+    while (1 == 1) {
         pthread_barrier_wait(&startOfIterationBarrier);
-
+        if (STOP == TRUE) return (void*)0;
         diff = 0;
         simThread(start, end, grid0, grid1, &diff);
         // Swap grid pointers
@@ -105,7 +104,7 @@ void* threadFunc(ThreadArguements* args) {
         grid1 = grid0;
         grid0 = temp;
         pthread_mutex_lock(&totalDiffMutex);
-        *totalDiff += diff;
+        *maxDiff = (*maxDiff < diff) ? diff : *maxDiff;
         pthread_mutex_unlock(&totalDiffMutex);
 
         pthread_barrier_wait(&endOfIterationBarrier);
@@ -113,7 +112,7 @@ void* threadFunc(ThreadArguements* args) {
     // Exit on condition
 }
 
-void sim(double endDiff, Grid* g) {
+void sim(double endDiff, unsigned int WORKERS, Grid* g) {
     time_t startTime = time(NULL);
     // Setup
     Grid* grid0 = g;
@@ -128,7 +127,7 @@ void sim(double endDiff, Grid* g) {
     int width = grid1->width = g->width;
     int height = grid1->height = g->height;
     generateGrid(grid1, FALSE);  // Create grid filled with 0's
-    double totalDiff;
+    double maxDiff;
 
     // Create threads
     int gap = (width * height) / WORKERS;
@@ -142,16 +141,16 @@ void sim(double endDiff, Grid* g) {
         th[i].end = (i + 1) * gap;
         th[i].g0 = grid0;
         th[i].g1 = grid1;
-        th[i].totalDiff = &totalDiff;
+        th[i].maxDiff = &maxDiff;
         if (i != WORKERS - 1) {
             th[i].end = (i + 1) * gap;
         } else {
             th[i].end = width * height;
         }
-        
-        pthread_create(&threads[i], NULL, threadFunc, &th[i]);
+
+        pthread_create(&threads[i], NULL, (void*)threadFunc, &th[i]);
     }
-    totalDiff = 0;
+    maxDiff = 0;
     pthread_barrier_wait(&startOfIterationBarrier);
     while (1) {
         // Wait for all threads to finish here
@@ -169,13 +168,20 @@ void sim(double endDiff, Grid* g) {
 #endif
         // Reset any vars for next iteration
         iterations++;
-        if (totalDiff < endDiff) break;
-        totalDiff = 0;
+        if (maxDiff < endDiff) break;
+        maxDiff = 0;
         // Set the threads off again
         pthread_barrier_wait(&startOfIterationBarrier);
     }
-    printf("Iterations: %d\n");
-    printf("Time: %ds\n", time(NULL)-startTime);
+    STOP = TRUE;  // Global Variable - threads can only read once start of
+                  // iteration barrier has been called
+    pthread_barrier_wait(
+        &startOfIterationBarrier);  // Makes the threads start the loop again,
+                                    // causing them to check if STOP == TRUE
+
+#ifdef VERBOSE
+    printf("Iterations: %d\n", iterations);
+    printf("Time: %ds\n", (int)(time(NULL) - startTime));
     printf("Workers %d\n", WORKERS);
     printf("\n");
     for (int x = 0; x < width; x++) {
@@ -184,18 +190,32 @@ void sim(double endDiff, Grid* g) {
         }
         printf("\n");
     }
+#else
+    printf("\n%d,%u,%u,%f,%d,%d", WORKERS, width, height, endDiff, iterations,
+           (int)(time(NULL) - startTime));
+#endif
     pthread_barrier_destroy(&startOfIterationBarrier);
     pthread_barrier_destroy(&endOfIterationBarrier);
     pthread_mutex_destroy(&totalDiffMutex);
 }
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc != 5) {
+        printf(
+            "Please inputs 4 arguements: Number of Threads, grid width and "
+            "height and precision\n");
+        return -1;
+    }
+    unsigned int WORKERS = atoi(argv[1]);
+    unsigned int GRID_WIDTH = atoi(argv[2]);
+    unsigned int GRID_HEIGHT = atoi(argv[3]);
+    double PRECISION = atof(argv[4]);
     srand(time(NULL));
     Grid g;
     g.width = (unsigned int)GRID_WIDTH;
     g.height = (unsigned int)GRID_HEIGHT;
     generateGrid(&g, TRUE);
-    sim(0.0000001, &g);
+    sim(PRECISION, WORKERS, &g);
 
     return 0;
 }
