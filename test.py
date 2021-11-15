@@ -64,7 +64,7 @@ def compareOut(grid0, grid1, precision):
     return True
 
 def validate():
-    width = height = 16
+    width = height = 512
     precision = 0.000001
     sequentialData = []
     for workers in [1, 2, 4, 8, 16, 32, 44]:
