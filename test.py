@@ -83,13 +83,11 @@ def validate():
                 check["Reason"] = "Sequential and parallel programs differ by too much"
         
 
-        print("Dim: {}x{}, Success: {}".format(
-            width, height, check["success"]), end="")
+        os.system("Dim: {}x{}, Success: {}".format(
+            width, height, check["success"]))
         if(check["success"] == False):
-            print("Reason: {}, Data: ".format(check["reason"]))
-            print(check["data"])
-        else:
-            print("")
+            os.system("Reason: {}, Data: ".format(check["reason"]))
+            os.system(check["data"])
 
 
 def main(mode):
