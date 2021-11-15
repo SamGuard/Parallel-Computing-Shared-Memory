@@ -7,6 +7,11 @@
 
 #define TRUE 1
 #define FALSE 0
+
+#define PATTERN_ZERO 0
+#define PATTERN_GRADIENT 1
+#define PATTERN_RANDOM 2
+
 //#define VERBOSE // Whether to print test info or not
 
 int STOP = FALSE;  // Whether or not the threads should exit
@@ -14,7 +19,7 @@ pthread_barrier_t startOfIterationBarrier, endOfIterationBarrier;
 pthread_mutex_t totalDiffMutex;
 
 typedef struct grid {
-    double** val;                 // Array for each value in cell
+    double** val;                // Array for each value in cell
     unsigned int width, height;  // Size of the grid
 } Grid;
 
@@ -47,7 +52,9 @@ void generateGrid(Grid* g, int init) {
             // Initialise each memory location with a value
             // If init == True assign left and top edges to 1 and the other
             // edges to 0. The rest are set to random values
-            if (init == TRUE) {
+            if (init == PATTERN_RANDOM) {
+                g->val[i][j] = (double)(rand() / 10) / (double)(RAND_MAX / 10);
+            } else if (init == PATTERN_GRADIENT) {
                 if (i == 0 || j == 0) {
                     g->val[i][j] = 1;
                 } else if (i == width - 1 || j == height - 1) {
@@ -56,7 +63,7 @@ void generateGrid(Grid* g, int init) {
                     g->val[i][j] =
                         (double)(rand() / 10) / (double)(RAND_MAX / 10);
                 }
-            } else {
+            } else if(init == PATTERN_ZERO) {
                 g->val[i][j] = 0;
             }
         }
@@ -69,8 +76,8 @@ void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
                double* maxDiff) {
     unsigned int i, x, y;
     double newVal;  // Value to be put into the new grid
-    double diff;   // Temp value to store the difference between the new and old
-                   // value
+    double diff;  // Temp value to store the difference between the new and old
+                  // value
     int width = grid0->width;
     int height = grid0->height;
     *maxDiff = 0;  // Pointer value in previous function to store maximum
@@ -234,7 +241,7 @@ int main(int argc, char** argv) {
     Grid g;
     g.width = (unsigned int)GRID_WIDTH;
     g.height = (unsigned int)GRID_HEIGHT;
-    generateGrid(&g, TRUE);
+    generateGrid(&g, PATTERN_RANDOM);
     sim(PRECISION, PRINT_DATA, WORKERS, &g);
 
     return 0;
