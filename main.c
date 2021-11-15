@@ -7,42 +7,46 @@
 
 #define TRUE 1
 #define FALSE 0
-//#define VERBOSE
-#define FILE_OUT
+//#define VERBOSE // Whether to print test info or not
 
-int STOP = FALSE;
+int STOP = FALSE;  // Whether or not the threads should exit
 pthread_barrier_t startOfIterationBarrier, endOfIterationBarrier;
 pthread_mutex_t totalDiffMutex;
 
 typedef struct grid {
-    float** val;
-    unsigned int width, height;
+    double** val;                 // Array for each value in cell
+    unsigned int width, height;  // Size of the grid
 } Grid;
 
+// Inputs to give the threads
 typedef struct ThreadArguements {
     unsigned int start, end;
-    Grid *g0, *g1;
-    double* maxDiff;
+    Grid *g0, *g1;    // Pointer to 2 grids
+    double* maxDiff;  // Max difference between previous cell and current cell
 } ThreadArguements;
 
+// initialises grid with
 void generateGrid(Grid* g, int init) {
     unsigned int width = g->width;
     unsigned int height = g->height;
-    g->val = (float**)malloc(width * sizeof(float*));
+    // Allocate memory for each grid cell
+    g->val = (double**)malloc(width * sizeof(double*));
     if (g->val == NULL) {
         printf("Cannot allocate memory for new grid");
         exit(-1);
         return;
     }
-
     for (unsigned int i = 0; i < width; i++) {
-        g->val[i] = (float*)malloc(height * sizeof(float));
+        g->val[i] = (double*)malloc(height * sizeof(double));
         if (g->val[i] == NULL) {
             printf("Cannot allocate memory for new row of grid");
             exit(-1);
             return;
         }
         for (unsigned int j = 0; j < height; j++) {
+            // Initialise each memory location with a value
+            // If init == True assign left and top edges to 1 and the other
+            // edges to 0. The rest are set to random values
             if (init == TRUE) {
                 if (i == 0 || j == 0) {
                     g->val[i][j] = 1;
@@ -50,7 +54,7 @@ void generateGrid(Grid* g, int init) {
                     g->val[i][j] = 0;
                 } else {
                     g->val[i][j] =
-                        (float)(rand() / 10) / (float)(RAND_MAX / 10);
+                        (double)(rand() / 10) / (double)(RAND_MAX / 10);
                 }
             } else {
                 g->val[i][j] = 0;
@@ -59,26 +63,30 @@ void generateGrid(Grid* g, int init) {
     }
 }
 
+// This function applies the relaxation to the grid. Called by each thread once
+// per iteration
 void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
                double* maxDiff) {
     unsigned int i, x, y;
-    float newVal;
-    double diff;
+    double newVal;  // Value to be put into the new grid
+    double diff;   // Temp value to store the difference between the new and old
+                   // value
     int width = grid0->width;
     int height = grid0->height;
-    *maxDiff = 0;
+    *maxDiff = 0;  // Pointer value in previous function to store maximum
+                   // difference between two cells in an iteration
     for (i = start; i < end; i++) {
         x = i % width;
         y = i / width;
         if (x == 0 || y == 0 || x == width - 1 || y == height - 1) {
-            grid1->val[x][y] = grid0->val[x][y];
+            grid1->val[x][y] =
+                grid0->val[x][y];  // If on boundery just move value
         } else {
-            newVal = (grid0->val[x][y] + grid0->val[x - 1][y - 1] +
-                      grid0->val[x + 1][y - 1] + grid0->val[x - 1][y + 1] +
-                      grid0->val[x + 1][y + 1]) /
-                     5;
+            newVal = (grid0->val[x - 1][y] + grid0->val[x + 1][y] +
+                      grid0->val[x][y - 1] + grid0->val[x][y - 1]) /
+                     4;  // Take averaage of all 4 surrounding values
 
-            diff = fabs((double)newVal - (double)grid0->val[x][y]);
+            diff = fabs(newVal - grid0->val[x][y]);
             *maxDiff = (*maxDiff < diff) ? diff : *maxDiff;
             grid1->val[x][y] = newVal;
         }
