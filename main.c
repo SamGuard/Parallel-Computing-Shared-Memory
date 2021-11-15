@@ -112,7 +112,7 @@ void* threadFunc(ThreadArguements* args) {
     // Exit on condition
 }
 
-void sim(double endDiff, unsigned int WORKERS, Grid* g) {
+void sim(double endDiff, int PRINT_DATA, unsigned int WORKERS, Grid* g) {
     time_t startTime = time(NULL);
     // Setup
     Grid* grid0 = g;
@@ -191,8 +191,18 @@ void sim(double endDiff, unsigned int WORKERS, Grid* g) {
         printf("\n");
     }
 #else
-    printf("%d,%u,%u,%f,%d,%d\n", WORKERS, width, height, endDiff, iterations,
+    printf("%d,%u,%u,%f,%d,%d", WORKERS, width, height, endDiff, iterations,
            (int)(time(NULL) - startTime));
+    if (PRINT_DATA == TRUE) {
+        printf(",");
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                printf("%f ", grid0->val[x][y]);
+            }
+            printf("\n");
+        }
+    }
+    printf("\n");
 #endif
     pthread_barrier_destroy(&startOfIterationBarrier);
     pthread_barrier_destroy(&endOfIterationBarrier);
@@ -200,9 +210,9 @@ void sim(double endDiff, unsigned int WORKERS, Grid* g) {
 }
 
 int main(int argc, char** argv) {
-    if (argc != 5) {
+    if (argc != 6) {
         printf(
-            "Please inputs 4 arguements: Number of Threads, grid width and "
+            "Please inputs 5 arguements: Number of Threads, grid width and "
             "height and precision\n");
         return -1;
     }
@@ -210,12 +220,14 @@ int main(int argc, char** argv) {
     unsigned int GRID_WIDTH = atoi(argv[2]);
     unsigned int GRID_HEIGHT = atoi(argv[3]);
     double PRECISION = atof(argv[4]);
+    int PRINT_DATA = atoi(argv[5]);
+
     srand(time(NULL));
     Grid g;
     g.width = (unsigned int)GRID_WIDTH;
     g.height = (unsigned int)GRID_HEIGHT;
     generateGrid(&g, TRUE);
-    sim(PRECISION, WORKERS, &g);
+    sim(PRECISION, PRINT_DATA, WORKERS, &g);
 
     return 0;
 }
