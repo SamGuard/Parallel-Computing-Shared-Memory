@@ -95,7 +95,7 @@ void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
     for (i = start; i < end; i++) {
         x = i / height;
         y = i % height;
-        if (x == 0 || y == 0 || x == width - 1 || y == height - 1) {
+        if (x * y * (x - width + 1) * (y - height + 1) == 0) {
             grid1->val[x][y] =
                 grid0->val[x][y];  // If on boundery just move value
         } else {
@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
 
     sim(PRECISION, PRINT_DATA, WORKERS, &g);
 
-    if(PRINT_DATA == TRUE){
+    if (PRINT_DATA == TRUE) {
         printf(",");
         printGrid(&inputGrid);
     }
