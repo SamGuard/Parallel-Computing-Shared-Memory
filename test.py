@@ -32,18 +32,19 @@ def getGrid(s):
                 data[-1].append(Decimal(x))
     return data
 
+
 def checkOut(out):
     stdOut = out.stdout.decode("utf-8").split(",")
     width = int(stdOut[1])
     height = int(stdOut[2])
+
+    iterations = int(stdOut[4])
 
     endGridString = stdOut[6]
     startGridString = stdOut[7]
 
     endGrid = getGrid(endGridString)
     startGrid = getGrid(startGridString)
-
-    
 
     for x in range(width):
         for y in range(height):
@@ -55,7 +56,7 @@ def checkOut(out):
                 if(endCell != startCell):
                     return {"success": False, "reason": "Boundery value changed: {}->{}".format(startCell, endCell), "data": endGrid}
 
-    return {"success": True, "reason": "", "data": endGrid}
+    return {"success": True, "reason": "", "data": endGrid, "iterations": iterations}
 
 
 def compareOut(grid0, grid1, precision):
@@ -67,7 +68,6 @@ def compareOut(grid0, grid1, precision):
             cell1 = grid1[i][j]
             totalDifference += abs(cell0 - cell1)
     meanDifference = totalDifference / (len(grid0) * len(grid0[0]))
-
     if(meanDifference > precision):
         print(meanDifference)
         return False
@@ -78,22 +78,24 @@ def validate():
     width = height = 256
     precision = 0.000001
     sequentialData = []
+    sequentialIterations = 0
     for workers in [1, 2, 4, 8, 16, 32, 44]:
         command = "./main {} {} {} {} 1".format(
             workers, width, height, precision)
         processOutput = subprocess.run(
             command, shell=True, capture_output=True)
         check = checkOut(processOutput)
-        if(check["success"] != False):        
+        if(check["success"] != False):
             if(workers == 1):
                 sequentialData = check["data"]
+                sequentialIterations = check["iterations"]
             else:
-                if(not compareOut(sequentialData, check["data"], 0.00001)):
+                if(not compareOut(sequentialData, check["data"], 0.00001) and abs(check["iterations"] - sequentialIterations) < 10):
                     check["success"] = False
                     check["reason"] = "Sequential and parallel programs differ by too much"
 
         print("Threads: {}, Dim: {}x{}, Success: {}".format(workers,
-            width, height, check["success"]), end="")
+                                                            width, height, check["success"]), end="")
         if(check["success"] == False):
             print("Reason: {}, Data: ".format(check["reason"]))
             print(check["data"][:1][:8])
