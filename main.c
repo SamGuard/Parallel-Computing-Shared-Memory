@@ -95,19 +95,19 @@ void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
     for (i = start; i < end; i++) {
         x = i / height;
         y = i % height;
-        if (x * y * (x - width + 1) * (y - height + 1) == 0) {
+        if (x == 0 || y == 0 || x == width - 1 || y == height - 1) {
             grid1->val[x][y] =
                 grid0->val[x][y];  // If on boundery just move value
-        } else {
-            newVal = (grid0->val[x - 1][y] + grid0->val[x + 1][y] +
-                      grid0->val[x][y - 1] + grid0->val[x][y - 1]) /
-                     4;  // Take averaage of all 4 surrounding values
-
-            diff = fabs(newVal - grid0->val[x][y]);
-            isBigger = (*maxDiff < diff);
-            *maxDiff = isBigger * diff + (1 - isBigger) * (*maxDiff);
-            grid1->val[x][y] = newVal;
+            continue;
         }
+        newVal = (grid0->val[x - 1][y] + grid0->val[x + 1][y] +
+                  grid0->val[x][y - 1] + grid0->val[x][y - 1]) /
+                 4;  // Take averaage of all 4 surrounding values
+
+        diff = fabs(newVal - grid0->val[x][y]);
+        isBigger = (*maxDiff < diff);
+        *maxDiff = isBigger * diff + (1 - isBigger) * (*maxDiff);
+        grid1->val[x][y] = newVal;
     }
 }
 
@@ -148,7 +148,7 @@ void sim(double endDiff, int PRINT_DATA, unsigned int WORKERS, Grid* g) {
         exit(-1);
         return;
     }
-    Grid* temp;
+    
     unsigned int iterations = 0;
     int width = grid1->width = g->width;
     int height = grid1->height = g->height;
