@@ -91,9 +91,10 @@ void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
     int height = grid0->height;
     *maxDiff = 0;  // Pointer value in previous function to store maximum
                    // difference between two cells in an iteration
+    int isBigger;
     for (i = start; i < end; i++) {
-        x = i % width;
-        y = i / width;
+        x = i / height;
+        y = i % height;
         if (x == 0 || y == 0 || x == width - 1 || y == height - 1) {
             grid1->val[x][y] =
                 grid0->val[x][y];  // If on boundery just move value
@@ -103,7 +104,8 @@ void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
                      4;  // Take averaage of all 4 surrounding values
 
             diff = fabs(newVal - grid0->val[x][y]);
-            *maxDiff = (*maxDiff < diff) ? diff : *maxDiff;
+            isBigger = (*maxDiff < diff);
+            *maxDiff = isBigger * diff + (1 - isBigger) * (*maxDiff);
             grid1->val[x][y] = newVal;
         }
     }
