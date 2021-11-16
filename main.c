@@ -30,6 +30,15 @@ typedef struct ThreadArguements {
     double* maxDiff;  // Max difference between previous cell and current cell
 } ThreadArguements;
 
+void printGrid(Grid* g) {
+    for (int x = 0; x < g->width; x++) {
+        for (int y = 0; y < g->height; y++) {
+            printf("%f ", g->val[x][y]);
+        }
+        printf("\n");
+    }
+}
+
 // initialises grid with
 void generateGrid(Grid* g, int init) {
     unsigned int width = g->width;
@@ -63,7 +72,7 @@ void generateGrid(Grid* g, int init) {
                     g->val[i][j] =
                         (double)(rand() / 10) / (double)(RAND_MAX / 10);
                 }
-            } else if(init == PATTERN_ZERO) {
+            } else if (init == PATTERN_ZERO) {
                 g->val[i][j] = 0;
             }
         }
@@ -167,11 +176,12 @@ void sim(double endDiff, int PRINT_DATA, unsigned int WORKERS, Grid* g) {
     }
     maxDiff = 0;
     pthread_barrier_wait(&startOfIterationBarrier);
+    //--------------START OF LOOP------------------------
     while (1) {
         // Wait for all threads to finish here
         pthread_barrier_wait(&endOfIterationBarrier);
-        // Print out results of iterations
 
+// Print out results of iterations
 #ifdef VERBOSE
         printf("%f\n", totalDiff);
         for (int x = 0; x < width; x++) {
@@ -188,6 +198,8 @@ void sim(double endDiff, int PRINT_DATA, unsigned int WORKERS, Grid* g) {
         // Set the threads off again
         pthread_barrier_wait(&startOfIterationBarrier);
     }
+    //-------------------END OF LOOP---------------------
+
     STOP = TRUE;  // Global Variable - threads can only read once start of
                   // iteration barrier has been called
     pthread_barrier_wait(
@@ -210,12 +222,7 @@ void sim(double endDiff, int PRINT_DATA, unsigned int WORKERS, Grid* g) {
            (int)(time(NULL) - startTime));
     if (PRINT_DATA == TRUE) {
         printf(",");
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                printf("%f ", grid0->val[x][y]);
-            }
-            printf("\n");
-        }
+        printGrid(grid0);
     }
     printf("\n");
 #endif
@@ -239,10 +246,24 @@ int main(int argc, char** argv) {
 
     srand(time(NULL));
     Grid g;
-    g.width = (unsigned int)GRID_WIDTH;
-    g.height = (unsigned int)GRID_HEIGHT;
-    generateGrid(&g, PATTERN_RANDOM);
+    Grid inputGrid;
+    g.width = inputGrid.width = (unsigned int)GRID_WIDTH;
+    g.height = inputGrid.height = (unsigned int)GRID_HEIGHT;
+    generateGrid(&g, (PRINT_DATA == TRUE) ? PATTERN_GRADIENT : PATTERN_RANDOM);
+    generateGrid(&inputGrid, PATTERN_ZERO);
+
+    for (int x = 0; x < GRID_WIDTH; x++) {
+        for (int y = 0; y < GRID_HEIGHT; y++) {
+            inputGrid.val[x][y] = g.val[x][y];
+        }
+    }
+
     sim(PRECISION, PRINT_DATA, WORKERS, &g);
+
+    if(PRINT_DATA == TRUE){
+        printf(",");
+        printGrid(&inputGrid);
+    }
 
     return 0;
 }

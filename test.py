@@ -18,15 +18,10 @@ def performance():
                 subprocess.run(command, shell=True)
 
 
-def checkOut(out):
-    stdOut = out.stdout.decode("utf-8").split(",")
-    width = int(stdOut[1])
-    height = int(stdOut[2])
-    dataString = stdOut[6].split("\n")
+def getGrid(s):
     data = []
-
     # Build 2D array of all values from string
-    for rowString in dataString:
+    for rowString in s.split("\n"):
         row = rowString.split(" ")
         if(len(row) == 1):  # Skip just spaces or empty index's
             continue
@@ -35,20 +30,33 @@ def checkOut(out):
         for x in row:
             if(x != ""):
                 data[-1].append(Decimal(x))
+    return data
+
+def checkOut(out):
+    stdOut = out.stdout.decode("utf-8").split(",")
+    width = int(stdOut[1])
+    height = int(stdOut[2])
+
+    endGridString = stdOut[6]
+    startGridString = stdOut[7]
+
+    endGrid = getGrid(endGridString)
+    startGrid = getGrid(startGridString)
+
+    
 
     for x in range(width):
         for y in range(height):
 
-            cCell = data[x][y]  # Current cell
+            endCell = endGrid[x][y]  # Current cell
+            startCell = startGrid[x][y]
             # Program is set to have bounderies at 0 and 1 that are constant
             if(x == 0 or y == 0 or x == width-1 or y == height-1):
-                if(cCell != 0.0 and cCell != 1.0):
-                    return {"success": False, "reason": "Boundery value changed: {}".format(cCell), "data": data}
-            else:
-                if(cCell > data[x-1][y] or cCell > data[x][y-1]):
-                    return {"success": False, "reason": "Invalid values, values must decrease as index increases", "data": [cCell, data[x-1][y], data[x][y-1]]}
+                if(endCell != startCell):
+                    return {"success": False, "reason": "Boundery value changed: {}->{}".format(startCell, endCell), "data": endGrid}
 
-    return {"success": True, "reason": "", "data": data}
+    return {"success": True, "reason": "", "data": endGrid}
+
 
 def compareOut(grid0, grid1, precision):
     totalDifference = 0
@@ -61,8 +69,10 @@ def compareOut(grid0, grid1, precision):
     meanDifference = totalDifference / (len(grid0) * len(grid0[0]))
 
     if(meanDifference > precision):
+        print(meanDifference)
         return False
     return True
+
 
 def validate():
     width = height = 512
@@ -74,21 +84,21 @@ def validate():
         processOutput = subprocess.run(
             command, shell=True, capture_output=True)
         check = checkOut(processOutput)
-        if(check["success"] == False):
-            continue
-        if(workers == 1):
-            sequentialData = check["data"]
-        else:
-            if(not compareOut(sequentialData, check["data"], 0.00001)):
-                check["success"] = False
-                check["Reason"] = "Sequential and parallel programs differ by too much"
-        
+        if(check["success"] != False):        
+            if(workers == 1):
+                sequentialData = check["data"]
+            else:
+                if(not compareOut(sequentialData, check["data"], 0.00001)):
+                    check["success"] = False
+                    check["reason"] = "Sequential and parallel programs differ by too much"
 
-        os.system("Dim: {}x{}, Success: {}".format(
-            width, height, check["success"]))
+        print("Threads: {}, Dim: {}x{}, Success: {}".format(workers,
+            width, height, check["success"]), end="")
         if(check["success"] == False):
-            os.system("Reason: {}, Data: ".format(check["reason"]))
-            os.system(check["data"])
+            print("Reason: {}, Data: ".format(check["reason"]))
+            print(check["data"][:1][:8])
+        else:
+            print("")
 
 
 def main(mode):
