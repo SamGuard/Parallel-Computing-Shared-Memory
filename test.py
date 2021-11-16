@@ -7,14 +7,15 @@ getcontext().prec = 8
 
 def performance():
     os.system("echo workers,width,height,precision,iterations,time")
-
+    repeat = 5
     for workers in [1, 2, 4, 8, 16, 32, 44]:
-        for scale in [16, 64, 256, 512, 1024]:
-            width = height = scale
-            precision = 0.000001
-            command = "./main {} {} {} {} 0".format(
-                workers, width, height, precision)
-            subprocess.run(command, shell=True)
+        for scale in [16, 64, 256, 512, 1024, 2048, 4096]:
+            for r in range(repeat):
+                width = height = scale
+                precision = 0.001
+                command = "./main {} {} {} {} 0".format(
+                    workers, width, height, precision)
+                subprocess.run(command, shell=True)
 
 
 def checkOut(out):
