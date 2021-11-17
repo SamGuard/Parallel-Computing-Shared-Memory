@@ -7,9 +7,9 @@ getcontext().prec = 8
 
 def performance():
     os.system("echo workers,width,height,precision,iterations,time")
-    repeat = 5
-    for workers in [1, 2, 4, 8, 16, 32, 44]:
-        for scale in [16, 64, 256, 512, 1024, 2048, 4096]:
+    repeat = 1
+    for workers in [44]:
+        for scale in [4096, 4096*2, 4096*4]:
             for r in range(repeat):
                 width = height = scale
                 precision = 0.001
