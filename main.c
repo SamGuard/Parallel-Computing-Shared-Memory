@@ -110,7 +110,7 @@ void simThread(unsigned int start, unsigned int end, Grid* grid0, Grid* grid1,
             continue;
         }
         newVal = (grid0->val[x - 1][y] + grid0->val[x + 1][y] +
-                  grid0->val[x][y - 1] + grid0->val[x][y - 1]) /
+                  grid0->val[x][y - 1] + grid0->val[x][y + 1]) /
                  4;  // Take averaage of all 4 surrounding values
 
         diff = fabs(newVal - grid0->val[x][y]);
